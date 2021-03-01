@@ -1,0 +1,19 @@
+# FIXME: Remove dep in fsdeps
+. ./fsdeps/system.sh
+. ./fsdeps/arch.sh
+. ./PACKAGE.FS
+
+PLUGIN_DIR=fsbuild/_build/$PACKAGE_NAME_PRETTY
+PLUGIN_VERSION=$PACKAGE_VERSION
+PLUGIN_BINDIR=$PLUGIN_DIR/$SYSTEM/$ARCH
+PLUGIN_LICENSESDIR=$PLUGIN_DIR/Licenses
+PLUGIN_DOCSDIR=$PLUGIN_DIR/Docs
+PLUGIN_DATADIR=$PLUGIN_BINDIR
+
+if [ "$SYSTEM"] = "Windows" ]; then
+EXE=.exe
+else
+EXE=
+fi
+
+rm -Rf $PLUGIN_DIR

@@ -1,0 +1,367 @@
+#!/bin/sh
+set -e
+
+PACKAGE=SDL-1.2.15
+URL=https://www.libsdl.org/release/$PACKAGE.tar.gz
+SHA256=d6d316a793e5e348155f0dd93b979798933fb98aa1edebcc108829d6474aad00
+REVISION=0
+
+# Depends on libasound (deb: libasound2-dev) on Linux. Maybe this should be
+# considered a system library and not built/included.
+
+. fsdeps/dep.sh
+
+python3 fsdeps/download.py "$URL" sha256:$SHA256
+
+rm -Rf fsdeps/_build && mkdir fsdeps/_build && cd fsdeps/_build
+tar xf ../_sources/$PACKAGE.tar.gz
+cd $PACKAGE
+
+patch -p0 <<EOF
+--- src/video/quartz/SDL_QuartzVideo.h.orig	2013-02-02 17:53:45.000000000 -0800
++++ src/video/quartz/SDL_QuartzVideo.h	2013-02-02 17:54:15.000000000 -0800
+@@ -91,7 +91,9 @@ typedef struct SDL_PrivateVideoData {
+     CGDirectDisplayID  display;            /* 0 == main display (only support single display) */
+     const void         *mode;              /* current mode of the display */
+     const void         *save_mode;         /* original mode of the display */
++#if (MAC_OS_X_VERSION_MIN_REQUIRED < 1070)
+     CGDirectPaletteRef palette;            /* palette of an 8-bit display */
++#endif
+     NSOpenGLContext    *gl_context;        /* OpenGL rendering context */
+     NSGraphicsContext  *nsgfx_context;     /* Cocoa graphics context */
+     Uint32             width, height, bpp; /* frequently used data about the display */
+EOF
+
+patch -p1 <<EOF
+--- a/src/video/x11/SDL_x11sym.h	Wed Apr 17 00:56:53 2013 -0700
++++ b/src/video/x11/SDL_x11sym.h	Sun Jun 02 20:48:53 2013 +0600
+@@ -165,7 +165,11 @@
+  */
+ #ifdef LONG64
+ SDL_X11_MODULE(IO_32BIT)
++#if SDL_VIDEO_DRIVER_X11_CONST_PARAM_XDATA32 || 1
++SDL_X11_SYM(int,_XData32,(Display *dpy,register _Xconst long *data,unsigned len),(dpy,data,len),return)
++#else
+ SDL_X11_SYM(int,_XData32,(Display *dpy,register long *data,unsigned len),(dpy,data,len),return)
++#endif
+ SDL_X11_SYM(void,_XRead32,(Display *dpy,register long *data,long len),(dpy,data,len),)
+ #endif
+EOF
+
+patch -p1 <<EOF
+diff -ur SDL-1.2.15/src/video/quartz/SDL_QuartzVideo.h SDL-1.2.15-patched/src/video/quartz/SDL_QuartzVideo.h
+--- SDL-1.2.15/src/video/quartz/SDL_QuartzVideo.h	2014-12-05 11:22:10.000000000 +0100
++++ SDL-1.2.15-patched/src/video/quartz/SDL_QuartzVideo.h	2014-12-05 11:27:50.000000000 +0100
+@@ -91,7 +91,7 @@
+     CGDirectDisplayID  display;            /* 0 == main display (only support single display) */
+     const void         *mode;              /* current mode of the display */
+     const void         *save_mode;         /* original mode of the display */
+-#if (MAC_OS_X_VERSION_MIN_REQUIRED < 1070)
++#if 0
+     CGDirectPaletteRef palette;            /* palette of an 8-bit display */
+ #endif
+     NSOpenGLContext    *gl_context;        /* OpenGL rendering context */
+diff -ur SDL-1.2.15/src/video/quartz/SDL_QuartzVideo.m SDL-1.2.15-patched/src/video/quartz/SDL_QuartzVideo.m
+--- SDL-1.2.15/src/video/quartz/SDL_QuartzVideo.m	2012-01-19 07:30:06.000000000 +0100
++++ SDL-1.2.15-patched/src/video/quartz/SDL_QuartzVideo.m	2014-12-05 11:31:32.000000000 +0100
+@@ -336,7 +336,7 @@
+     }
+ #endif
+ 
+-#if (MAC_OS_X_VERSION_MIN_REQUIRED < 1070)
++#if 0
+     if (!IS_LION_OR_LATER(this)) {
+         palette = CGPaletteCreateDefaultColorPalette();
+     }
+@@ -738,7 +738,7 @@
+         goto ERR_NO_SWITCH;
+     }
+ 
+-#if (MAC_OS_X_VERSION_MIN_REQUIRED < 1070)
++#if 0
+     if ( !isLion ) {
+         current->pixels = (Uint32*) CGDisplayBaseAddress (display_id);
+         current->pitch  = CGDisplayBytesPerRow (display_id);
+@@ -1244,7 +1244,7 @@
+ static int QZ_SetColors (_THIS, int first_color, int num_colors,
+                          SDL_Color *colors)
+ {
+-#if (MAC_OS_X_VERSION_MIN_REQUIRED < 1070)
++#if 0
+     /* we shouldn't have an 8-bit mode on Lion! */
+     if (!IS_LION_OR_LATER(this)) {
+         CGTableCount  index;
+@@ -1554,7 +1554,7 @@
+     else
+         QZ_UnsetVideoMode (this, TRUE, FALSE);
+ 
+-#if (MAC_OS_X_VERSION_MIN_REQUIRED < 1070)
++#if 0
+     if (!IS_LION_OR_LATER(this)) {
+         CGPaletteRelease(palette);
+     }
+EOF
+
+patch -p1 <<EOF
+Description: Export X11_KeyToUnicode() to legacy applications, but warn about such usage to stderr
+ Introduced in 1.2.11-3 (Sun, 13 Aug 2006 19:03:51 +0200).
+ .
+ Upstream accepted it:
+   Sam Lantinga 2012-01-22 10:48:43 PST
+ .
+   At this point it's fine to leave it as an exported function, but not in the
+   headers.
+   http://hg.libsdl.org/SDL/rev/900a0fae90ca
+Author: Sam Hocevar <sam+deb@zoy.org>
+Last-Update: 2012-01-22
+Bug-Debian: http://bugs.debian.org/376560
+Forwarded: http://bugzilla.libsdl.org/show_bug.cgi?id=1390
+Applied-Upstream: http://hg.libsdl.org/SDL/rev/900a0fae90ca
+
+--- a/src/video/x11/SDL_x11events.c
++++ b/src/video/x11/SDL_x11events.c
+@@ -1246,8 +1246,11 @@
+  * sequences (dead accents, compose key sequences) will not work since the
+  * state has been irrevocably lost.
+  */
++extern DECLSPEC Uint16 SDLCALL X11_KeyToUnicode(SDLKey, SDLMod);
++
+ Uint16 X11_KeyToUnicode(SDLKey keysym, SDLMod modifiers)
+ {
++	static int warning = 1;
+ 	struct SDL_VideoDevice *this = current_video;
+ 	char keybuf[32];
+ 	int i;
+@@ -1255,6 +1258,12 @@
+ 	XKeyEvent xkey;
+ 	Uint16 unicode;
+ 
++	if ( warning ) {
++		warning = 0;
++		fprintf(stderr, "WARNING: Application is using X11_KeyToUnicode().\n");
++		fprintf(stderr, "This is not an official SDL function, please report this as a bug.\n");
++	}
++
+ 	if ( !this || !SDL_Display ) {
+ 		return 0;
+ 	}
+EOF
+
+patch -p1 <<EOF
+Description: Do not propagate -lpthread to sdl-config --libs
+ Introduced in 1.2.11-1 (Thu, 20 Jul 2006 14:17:18 +0200).
+ .
+ Upstream will not apply it at the moment:
+   Sam Lantinga 2012-01-22 10:54:21 PST
+ .
+   At some point it was required that multi-threaded programs using pthreads on
+   Linux link directly to the pthread library.  I don't remember all the details,
+   but it had something to do with initializing C runtime variables correctly.
+ .
+   I'm sure it's not an issue anymore, but I'd rather not apply this patch in 1.2.
+   I'll go ahead and make this change in 1.3 though.
+Author: Sam Hocevar <sam+deb@zoy.org>
+Last-Update: 2012-01-22
+Bug-Debian: http://bugs.debian.org/375822
+Forwarded: http://bugzilla.libsdl.org/show_bug.cgi?id=1392
+
+--- a/sdl.pc.in
++++ b/sdl.pc.in
+@@ -10,6 +10,6 @@
+ Version: @SDL_VERSION@
+ Requires:
+ Conflicts:
+-Libs: -L\${libdir} @SDL_RLD_FLAGS@ @SDL_LIBS@
++Libs: -L\${libdir} @SDL_RLD_FLAGS@ -lSDL
+ Libs.private: @SDL_STATIC_LIBS@
+ Cflags: -I\${includedir}/SDL @SDL_CFLAGS@
+--- a/sdl-config.in
++++ b/sdl-config.in
+@@ -45,7 +45,7 @@
+       echo -I@includedir@/SDL @SDL_CFLAGS@
+       ;;
+ @ENABLE_SHARED_TRUE@    --libs)
+-@ENABLE_SHARED_TRUE@      echo -L@libdir@ @SDL_RLD_FLAGS@ @SDL_LIBS@
++@ENABLE_SHARED_TRUE@      echo -L@libdir@ @SDL_RLD_FLAGS@ -lSDL
+ @ENABLE_SHARED_TRUE@      ;;
+ @ENABLE_STATIC_TRUE@@ENABLE_SHARED_TRUE@    --static-libs)
+ @ENABLE_STATIC_TRUE@@ENABLE_SHARED_FALSE@    --libs|--static-libs)
+EOF
+
+patch -p1 <<EOF
+Description: FreeBSD compile fix.
+ src/joystick/bsd/SDL_sysjoystick.c makes the invalid assumption that
+ __FreeBSD_kernel__ implies presence of "ucr_data" struct member.  This
+ breaks recent versions of FreeBSD 10-CURRENT, FreeBSD 9-STABLE and
+ Debian GNU/kFreeBSD "wheezy/sid".
+Origin: upstream, http://hg.libsdl.org/SDL/rev/62ff1c0a103f
+Author: Robert Millan <rmh@debian.org>
+
+--- a/src/joystick/bsd/SDL_sysjoystick.c
++++ b/src/joystick/bsd/SDL_sysjoystick.c
+@@ -148,7 +148,7 @@
+ static int	report_alloc(struct report *, struct report_desc *, int);
+ static void	report_free(struct report *);
+ 
+-#if defined(USBHID_UCR_DATA) || defined(__FreeBSD_kernel__)
++#if defined(USBHID_UCR_DATA)
+ #define REP_BUF_DATA(rep) ((rep)->buf->ucr_data)
+ #elif (defined(__FREEBSD__) && (__FreeBSD_kernel_version > 800063))
+ #define REP_BUF_DATA(rep) ((rep)->buf->ugd_data)
+EOF
+
+patch -p1 <<EOF
+Description: Revert change that breaks window corner resizing
+ http://bugzilla.libsdl.org/show_bug.cgi?id=1430
+Author: Andrew Caudwell <acaudwell@gmail.com>
+Last-Update: 2012-04-10
+Bug-Debian: http://bugs.debian.org/665779
+Forwarded: http://bugzilla.libsdl.org/show_bug.cgi?id=1430
+
+--- a/src/video/x11/SDL_x11events.c
++++ b/src/video/x11/SDL_x11events.c
+@@ -57,12 +57,6 @@
+ static SDLKey MISC_keymap[256];
+ SDLKey X11_TranslateKeycode(Display *display, KeyCode kc);
+ 
+-/*
+- Pending resize target for ConfigureNotify (so outdated events don't
+- cause inappropriate resize events)
+-*/
+-int X11_PendingConfigureNotifyWidth = -1;
+-int X11_PendingConfigureNotifyHeight = -1;
+ 
+ #ifdef X_HAVE_UTF8_STRING
+ Uint32 Utf8ToUcs4(const Uint8 *utf8)
+@@ -825,16 +819,6 @@
+ #ifdef DEBUG_XEVENTS
+ printf("ConfigureNotify! (resize: %dx%d)\n", xevent.xconfigure.width, xevent.xconfigure.height);
+ #endif
+-		if ((X11_PendingConfigureNotifyWidth != -1) &&
+-		    (X11_PendingConfigureNotifyHeight != -1)) {
+-		    if ((xevent.xconfigure.width != X11_PendingConfigureNotifyWidth) &&
+-			(xevent.xconfigure.height != X11_PendingConfigureNotifyHeight)) {
+-			    /* Event is from before the resize, so ignore. */
+-			    break;
+-		    }
+-		    X11_PendingConfigureNotifyWidth = -1;
+-		    X11_PendingConfigureNotifyHeight = -1;
+-		}
+ 		if ( SDL_VideoSurface ) {
+ 		    if ((xevent.xconfigure.width != SDL_VideoSurface->w) ||
+ 		        (xevent.xconfigure.height != SDL_VideoSurface->h)) {
+--- a/src/video/x11/SDL_x11events_c.h
++++ b/src/video/x11/SDL_x11events_c.h
+@@ -27,8 +27,3 @@
+ extern void X11_InitOSKeymap(_THIS);
+ extern void X11_PumpEvents(_THIS);
+ extern void X11_SetKeyboardState(Display *display, const char *key_vec);
+-
+-/* Variables to be exported */
+-extern int X11_PendingConfigureNotifyWidth;
+-extern int X11_PendingConfigureNotifyHeight;
+-
+--- a/src/video/x11/SDL_x11video.c
++++ b/src/video/x11/SDL_x11video.c
+@@ -1177,8 +1177,6 @@
+ 			current = NULL;
+ 			goto done;
+ 		}
+-		X11_PendingConfigureNotifyWidth = width;
+-		X11_PendingConfigureNotifyHeight = height;
+ 	} else {
+ 		if (X11_CreateWindow(this,current,width,height,bpp,flags) < 0) {
+ 			current = NULL;
+EOF
+
+patch -p1 <<EOF
+Description: Left/Right Joystick Axis doesn't work with some controllers
+ Introduced in 1.2.15-3 (June 2012)
+ .
+ Reviewed in 2013-10-19 for SDL2 and SDL1.2 and submitted new upstream bug
+ report for re-evaluation, the previous one (suggested by the bug submitted) was
+ probably not related.
+Author: Sam Hocevar <sam@hocevar.net>
+Last-Update: 2013-10-19
+Bug-Debian: http://bugs.debian.org/673324
+Forwarded: https://bugzilla.libsdl.org/show_bug.cgi?id=2165
+
+--- a/src/joystick/linux/SDL_sysjoystick.c
++++ b/src/joystick/linux/SDL_sysjoystick.c
+@@ -702,7 +702,7 @@
+ 				++joystick->nbuttons;
+ 			}
+ 		}
+-		for ( i=0; i<ABS_MISC; ++i ) {
++		for ( i=0; i<ABS_MAX; ++i ) {
+ 			/* Skip hats */
+ 			if ( i == ABS_HAT0X ) {
+ 				i = ABS_HAT3Y;
+EOF
+
+patch -p1 <<EOF
+Description: Do not harness backing store by default
+ xorg-server 1.15 enables backing store if composite extension is enabled
+ (default settings). Harnessing backing store through compositor leads to
+ tearing effect.
+ This patch reverts default harnessing backing store to conditional use if
+ SDL_VIDEO_X11_BACKINGSTORE environment variable exists.
+Origin: https://bugs.launchpad.net/ubuntu/+source/libsdl1.2/+bug/1280665/comments/1
+Bug: https://bugzilla.libsdl.org/show_bug.cgi?id=2383
+Bug-Debian: https://bugs.debian.org/747168
+
+--- a/src/video/x11/SDL_x11video.c
++++ b/src/video/x11/SDL_x11video.c
+@@ -1088,10 +1088,8 @@
+ 		}
+ 	}
+ 
+-#if 0 /* This is an experiment - are the graphics faster now? - nope. */
+ 	if ( SDL_getenv("SDL_VIDEO_X11_BACKINGSTORE") )
+-#endif
+-	/* Cache the window in the server, when possible */
++	/* Cache the window in the server when possible, on request */
+ 	{
+ 		Screen *xscreen;
+ 		XSetWindowAttributes a;
+EOF
+
+if [ "$MACOS" = "1" ]; then
+python3 ../../replace.py \
+	sdl-config.in \
+	"-lSDL" \
+	"-framework Cocoa -lSDL -lSDLmain"
+python3 ../../replace.py \
+	sdl.pc.in
+	"-lSDL" \
+	"-framework Cocoa -lSDL -lSDLmain"
+fi
+
+if [ "$SYSTEM_OS" = "Windows" ]; then
+./configure \
+        --prefix=$PREFIX
+elif [ "$SYSTEM_OS" = "macOS" ]; then
+./configure \
+	--prefix=$PREFIX \
+	--disable-video-x11
+else
+./configure \
+        --prefix=$PREFIX \
+	--disable-rpath \
+	--enable-sdl-dlopen \
+	--disable-loadso \
+	--disable-video-ggi \
+	--disable-video-svga \
+	--disable-video-aalib \
+	--disable-nas \
+	--disable-esd \
+	--disable-arts \
+	--disable-x11-shared \
+	--disable-video-directfb \
+	--disable-video-caca
+fi
+
+make
+make install
+
+touch $INSTALLED

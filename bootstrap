@@ -1,0 +1,21 @@
+#!/bin/sh
+
+set -e
+
+# FIXME: Clean? distclean?
+rm -f dosbox
+rm -Rf fsbuild/_build
+
+echo "Downloading dosbox-0.74-3.tar.gz..."
+URL=https://freefr.dl.sourceforge.net/project/dosbox/dosbox/0.74-3/dosbox-0.74-3.tar.gz
+SHA256=c0d13dd7ed2ed363b68de615475781e891cd582e8162b5c3669137502222260a
+python3 fsbuild/download.py "$URL" sha256:$SHA256
+
+echo "Extracting dosbox-0.74-3.tar.gz..."
+mkdir -p fsbuild/_build
+cd fsbuild/_build
+rm -Rf dosbox-0.74-3 dosbox-src
+tar xf ../_sources/dosbox-0.74-3.tar.gz
+mv dosbox-0.74-3 dosbox-src
+
+echo "Bootstrap done"

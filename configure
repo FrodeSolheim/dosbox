@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -e
+
+. fsbuild/system.sh
+
+cd fsbuild/_build/dosbox-src
+./configure \
+	--prefix=/dev/null

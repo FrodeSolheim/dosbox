@@ -1,0 +1,43 @@
+#!/bin/sh
+set -e
+
+fsdeps/dep/SDL
+
+PACKAGE=SDL_sound-1.0.3
+URL=https://www.icculus.org/SDL_sound/downloads/$PACKAGE.tar.gz
+SHA256=3999fd0bbb485289a52be14b2f68b571cb84e380cc43387eadf778f64c79e6df
+REVISION=1
+
+# Depends on libasound (deb: libasound2-dev) on Linux. Maybe this should be
+# considered a system library and not built/included.
+
+. fsdeps/dep.sh
+
+python3 fsdeps/download.py "$URL" sha256:$SHA256
+
+rm -Rf fsdeps/_build && mkdir fsdeps/_build && cd fsdeps/_build
+tar xf ../_sources/$PACKAGE.tar.gz
+cd $PACKAGE
+
+./configure \
+        --prefix=$PREFIX \
+	--disable-smpeg \
+	--disable-mikmod \
+	--disable-ogg \
+	--disable-flac \
+	--disable-speex
+
+make
+
+# Make libSDL_sound.a build deterministically by sorting objects
+mkdir temp
+cd temp
+ar x ../.libs/libSDL_sound.a
+ar cru libSDL_sound.a `ls *.o | sort`
+ranlib libSDL_sound.a
+mv libSDL_sound.a ../.libs/libSDL_sound.a
+cd ..
+
+make install
+
+touch $INSTALLED

@@ -1,0 +1,24 @@
+#!/bin/sh
+set -e
+
+fsdeps/dep/SDL
+
+PACKAGE=SDL_net-1.2.8
+URL=https://www.libsdl.org/projects/SDL_net/release/$PACKAGE.tar.gz
+SHA256=5f4a7a8bb884f793c278ac3f3713be41980c5eedccecff0260411347714facb4
+REVISION=0
+
+. fsdeps/dep.sh
+
+python3 fsdeps/download.py "$URL" sha256:$SHA256
+
+rm -Rf fsdeps/_build && mkdir fsdeps/_build && cd fsdeps/_build
+tar xf ../_sources/$PACKAGE.tar.gz
+cd $PACKAGE
+
+./configure \
+        --prefix=$PREFIX
+make
+make install
+
+touch $INSTALLED
