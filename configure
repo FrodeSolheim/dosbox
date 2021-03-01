@@ -5,5 +5,11 @@ set -e
 . fsbuild/system.sh
 
 cd fsbuild/_build/dosbox-src
+if [ $SYSTEM_OS = "Linux" ]; then
+./configure \
+	--prefix=/dev/null \
+	CXX="g++ -no-pie"
+else
 ./configure \
 	--prefix=/dev/null
+fi
