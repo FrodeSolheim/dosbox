@@ -15,8 +15,4 @@ cp dosbox$EXE $PLUGIN_BINDIR
 mkdir -p $PLUGIN_LICENSESDIR
 cp fsbuild/_build/dosbox-src/COPYING $PLUGIN_LICENSESDIR/DOSBox.txt
 
-# python3 fsbuild/standalone.py $BIN_DIR
-
-# find ${PLUGIN_DIR}
-
 . fsbuild/plugin.post.sh

@@ -4,13 +4,13 @@
 set -e
 
 . ./PACKAGE.FS
-. fsbuild/common.sh
+. fsbuild/system.sh
 
 mkdir -p fsbuild/_dist
 
 cd fsbuild/_build
 
-if [ "$SYSTEM" = "Windows" ]; then
+if [ "$SYSTEM_OS" = "Windows" ]; then
 ARCHIVE=${PACKAGE_NAME_PRETTY}_${PACKAGE_VERSION}_${OS}_${ARCH}.zip
 zip -r ../_dist/$ARCHIVE ${PACKAGE_NAME_PRETTY}
 else
