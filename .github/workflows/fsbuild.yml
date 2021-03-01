@@ -84,7 +84,7 @@ jobs:
       run: fsdeps/use fsbuild/make
 
     - name: Bundle
-      run: fsbuild/bundle
+      run: fsdeps/use fsbuild/bundle
 
     - name: Archive
       run: fsbuild/archive
