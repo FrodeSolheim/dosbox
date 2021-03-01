@@ -6,7 +6,7 @@ fsdeps/dep/SDL
 PACKAGE=SDL_net-1.2.8
 URL=https://www.libsdl.org/projects/SDL_net/release/$PACKAGE.tar.gz
 SHA256=5f4a7a8bb884f793c278ac3f3713be41980c5eedccecff0260411347714facb4
-REVISION=0
+REVISION=1
 
 . fsdeps/dep.sh
 
@@ -17,7 +17,8 @@ tar xf ../_sources/$PACKAGE.tar.gz
 cd $PACKAGE
 
 ./configure \
-        --prefix=$PREFIX
+        --prefix=$PREFIX \
+	--disable-sdltest
 make
 make install
 
