@@ -7,7 +7,7 @@ set -e
 cd fsbuild/_build/dosbox-src
 if [ $SYSTEM_OS = "Linux" ]; then
 CXX="g++ -no-pie" ./configure --prefix=/dev/null
-elif [ $SYSTEM_OS = "Windows" ;then
+elif [ $SYSTEM_OS = "Windows" ];then
 CXXFLAGS="-g -O2 -fpermissive" ./configure --prefix=/dev/null
 else
 ./configure --prefix=/dev/null
