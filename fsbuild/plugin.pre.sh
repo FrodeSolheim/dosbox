@@ -1,6 +1,4 @@
-# FIXME: Remove dep in fsdeps
-. ./fsdeps/system.sh
-. ./fsdeps/arch.sh
+. ./fsbuild/system.sh
 . ./PACKAGE.FS
 
 PLUGIN_DIR=fsbuild/_build/$PACKAGE_NAME_PRETTY
