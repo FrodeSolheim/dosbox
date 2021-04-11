@@ -5,7 +5,7 @@ set -e
 . fsbuild/plugin.pre.sh
 
 mkdir -p $PLUGIN_BINDIR
-cp dosbox$EXE $PLUGIN_BINDIR
+cp dosbox$SYSTEM_EXE $PLUGIN_BINDIR
 
 mkdir -p $PLUGIN_READMEDIR
 cp README.md $PLUGIN_READMEDIR/ReadMe.txt
