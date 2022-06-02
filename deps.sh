@@ -2,8 +2,8 @@
 
 set -e
 
-fsdeps/dep/libpng
-fsdeps/dep/SDL
-fsdeps/dep/SDL_net
-fsdeps/dep/SDL_sound
-fsdeps/dep/zlib
+fsdeps/packages/libpng
+fsdeps/packages/SDL
+fsdeps/packages/SDL_net
+fsdeps/packages/SDL_sound
+fsdeps/packages/zlib
